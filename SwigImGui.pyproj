@@ -1,0 +1,103 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{b054d5a3-a1e3-425d-9936-6c184c3e07c9}</ProjectGuid>
+    <ProjectHome />
+    <StartupFile>hello_imgui.py</StartupFile>
+    <SearchPath />
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+    <InterpreterId>Global|PythonCore|3.6</InterpreterId>
+    <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
+    <IsWindowsApplication>False</IsWindowsApplication>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
+  <PropertyGroup>
+    <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="build_vs2017\CMakeCache.txt" />
+    <Content Include="build_vs2017\CMakeFiles\TargetDirectories.txt" />
+    <Content Include="CMakeLists.txt" />
+    <Content Include="imgui\examples\apple_example\imguiex-ios\Images.xcassets\AppIcon.appiconset\icon_imgui_60%402x~iphone.png" />
+    <Content Include="imgui\examples\apple_example\imguiex-ios\Images.xcassets\AppIcon.appiconset\icon_imgui_60%403x~iphone.png" />
+    <Content Include="imgui\examples\apple_example\imguiex-ios\Images.xcassets\AppIcon.appiconset\icon_imgui_76%402x~ipad.png" />
+    <Content Include="imgui\examples\apple_example\imguiex-ios\Images.xcassets\AppIcon.appiconset\icon_imgui_76~ipad.png" />
+    <Content Include="imgui\examples\apple_example\imguiex-ios\imgui_ex_icon.png" />
+    <Content Include="imgui\examples\apple_example\imguiex-osx\Assets.xcassets\AppIcon.appiconset\icon_imgui_180x180.png" />
+    <Content Include="imgui\examples\libs\glfw\COPYING.txt" />
+    <Content Include="imgui\examples\README.txt" />
+    <Content Include="imgui\examples\vulkan_example\CMakeLists.txt" />
+    <Content Include="imgui\extra_fonts\README.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="glglue\examples\glut_sample.py" />
+    <Compile Include="glglue\examples\pyqt4_sample.py" />
+    <Compile Include="glglue\examples\pyqt5_sample.py" />
+    <Compile Include="glglue\examples\tkinter_sample.py" />
+    <Compile Include="glglue\examples\wgl_sample.py" />
+    <Compile Include="glglue\glglue\basecontroller.py" />
+    <Compile Include="glglue\glglue\glut.py" />
+    <Compile Include="glglue\glglue\pysdl2.py" />
+    <Compile Include="glglue\glglue\qgl4.py" />
+    <Compile Include="glglue\glglue\qgl5.py" />
+    <Compile Include="glglue\glglue\sample\coord.py" />
+    <Compile Include="glglue\glglue\sample\cube.py" />
+    <Compile Include="glglue\glglue\sample\samplecontroller.py" />
+    <Compile Include="glglue\glglue\sample\targetview.py" />
+    <Compile Include="glglue\glglue\sample\triangle.py" />
+    <Compile Include="glglue\glglue\sample\__init__.py" />
+    <Compile Include="glglue\glglue\sdl.py" />
+    <Compile Include="glglue\glglue\togl.py" />
+    <Compile Include="glglue\glglue\wgl.py" />
+    <Compile Include="glglue\glglue\win32con.py" />
+    <Compile Include="glglue\glglue\wxglcanvas.py" />
+    <Compile Include="glglue\glglue\__init__.py" />
+    <Compile Include="glglue\setup.py" />
+    <Compile Include="glglue\tutorial\01_glut_basic.py" />
+    <Compile Include="glglue\tutorial\02_glut_wighout_opengl.py" />
+    <Compile Include="glglue\tutorial\03_use_glglue.py" />
+    <Compile Include="glglue\tutorial\simple_renderer.py" />
+    <Compile Include="hello_imgui.py" />
+    <Compile Include="setup.py" />
+    <Compile Include="swig_imgui.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="build_vs2017" />
+    <Folder Include="build_vs2017\CMakeFiles" />
+    <Folder Include="glglue" />
+    <Folder Include="glglue\examples" />
+    <Folder Include="glglue\glglue" />
+    <Folder Include="glglue\glglue\sample" />
+    <Folder Include="glglue\tutorial" />
+    <Folder Include="imgui\" />
+    <Folder Include="imgui\examples" />
+    <Folder Include="imgui\examples\apple_example\" />
+    <Folder Include="imgui\examples\apple_example\imguiex-ios" />
+    <Folder Include="imgui\examples\apple_example\imguiex-ios\Images.xcassets\" />
+    <Folder Include="imgui\examples\apple_example\imguiex-ios\Images.xcassets\AppIcon.appiconset" />
+    <Folder Include="imgui\examples\apple_example\imguiex-osx\" />
+    <Folder Include="imgui\examples\apple_example\imguiex-osx\Assets.xcassets\" />
+    <Folder Include="imgui\examples\apple_example\imguiex-osx\Assets.xcassets\AppIcon.appiconset" />
+    <Folder Include="imgui\examples\libs\" />
+    <Folder Include="imgui\examples\libs\glfw" />
+    <Folder Include="imgui\examples\vulkan_example" />
+    <Folder Include="imgui\extra_fonts" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="_swig_imgui\_swig_imgui.vcxproj">
+      <Name>_swig_imgui</Name>
+      <Project>{05dc23a4-f484-4306-a06d-b6df98faa5ed}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <InterpreterReference Include="Global|PythonCore|3.6" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
+</Project>

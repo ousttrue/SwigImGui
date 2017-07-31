@@ -1,3 +1,9 @@
 /imgui_wrap.cxx
 /swig_imgui.py
 /build
+/build_vs2017
+/.vs
+/__pycache__
+_swig_imgui.*
+Debug
+Release
