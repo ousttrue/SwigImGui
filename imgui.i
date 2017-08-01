@@ -13,7 +13,42 @@
 %{
 /* Includes the header in the wrapper code */
 #include "imgui/imgui.h"
-#include <vector>
+//#include <vector>
+#include <algorithm>
+
+struct byterange
+{
+    const char *begin;
+    size_t size;
+
+    byterange()
+        : begin(nullptr)
+        , size(0)
+    {}
+
+    byterange(const char *b, size_t s)
+        : begin(b)
+        , size(s)
+    {}
+
+    template<typename T>
+        byterange(const T &range)
+        : begin((const char *)range.begin())
+        , size(std::distance((const char *)range.begin(), (const char *)range.end()))
+    {}
+
+    byterange(const byterange &rhs)
+    {
+        *this=rhs;
+    }
+
+    byterange& operator=(const byterange &rhs)
+    {
+        begin=rhs.begin;
+        size=rhs.size;
+        return *this;
+    }
+};
 
 /* This function matches the prototype of the normal C callback
    function for our widget. However, we use the clientdata pointer
@@ -31,6 +66,10 @@ static void PythonRenderDrawListsFn(ImDrawData* data)
 }
 %}
 
+%typemap(out) byterange {
+  $result = PyBytes_FromStringAndSize($1.begin, $1.size);
+}
+
 %ignore ImGui::TreePush();
 
 //IMGUI_API void GetTexDataAsRGBA32(unsigned char** out_pixels, int* out_width, int* out_height, int* out_bytes_per_pixel = NULL);  // 4 bytes-per-pixel
@@ -39,7 +78,11 @@ static void PythonRenderDrawListsFn(ImDrawData* data)
 /* Parse the header file to generate wrappers */
 %include "imgui/imgui.h"
 
-%template(UCharVector) std::vector<unsigned char>;
+//%template(UCharVector) std::vector<unsigned char>;
+%template(ImVectorDrawVert) ImVector<ImDrawVert>;
+%template(ImVectorDrawIdx) ImVector<ImDrawIdx>;
+%template(ImVectorDrawCmd) ImVector<ImDrawCmd>;
+
 %inline %{
 
 unsigned long long GetTexDataAsRGBA32(int* out_width, int* out_height) 
@@ -70,6 +113,25 @@ unsigned long long GetTexDataAsRGBA32(int* out_width, int* out_height)
     void SetTexID(int id)
     {
         ImGui::GetIO().Fonts->TexID=(void*)id;
+    }
+}
+
+%extend ImDrawData {
+    ImDrawList* GetCmdList(int n){
+        return self->CmdLists[n];
+    }
+}
+
+%extend ImDrawList {
+    byterange GetVtxBufferData(){
+        return byterange(self->VtxBuffer);
+    }
+    byterange GetIdxBufferData(){
+        return byterange(self->IdxBuffer);
+    }
+
+    ImDrawCmd* GetCmdBuffer(int n){
+        return &self->CmdBuffer[n];
     }
 }
 
