@@ -23,11 +23,12 @@ class Controller:
     """
     OpenGL
     """
-    def __init__(self):
+    def __init__(self, window):
+        self.window=window
         self.width=0
         self.height=0
         self.is_initialized=False
-        self.bind=ImGuiBind()
+        self.bind=ImGuiBind(window)
 
     def onResize(self, w, h):
         logger.debug('onResize: %d, %d', w, h)
@@ -63,6 +64,40 @@ class Controller:
     def onKeyDown(self, keycode):
         logger.debug('onKeyDown: %d', keycode)
 
+    def process_event(self, event):
+        if event.type == SDL_KEYDOWN:
+            self.onKeyDown(event.key.keysym.sym)
+        elif event.type == SDL_MOUSEBUTTONDOWN:
+            if event.button.button==SDL_BUTTON_LEFT:
+                self.onLeftDown(event.button.x, event.button.y)
+            elif event.button.button==SDL_BUTTON_MIDDLE:
+                self.onMiddleDown(event.button.x, event.button.y)
+            elif event.button.button==SDL_BUTTON_RIGHT:
+                self.onRightDown(event.button.x, event.button.y)
+        elif event.type == SDL_MOUSEBUTTONUP:
+            if event.button.button==SDL_BUTTON_LEFT:
+                self.onLeftUp(event.button.x, event.button.y)
+            elif event.button.button==SDL_BUTTON_MIDDLE:
+                self.onMiddleUp(event.button.x, event.button.y)
+            elif event.button.button==SDL_BUTTON_RIGHT:
+                self.onRightUp(event.button.x, event.button.y)
+        elif event.type == SDL_MOUSEMOTION:
+            self.onMotion(event.motion.x, event.motion.y)
+        elif event.type == SDL_MOUSEWHEEL:
+            self.onWheel(-event.wheel.y)
+        elif event.type == SDL_WINDOWEVENT:
+            if event.window.windowID==SDL_GetWindowID(self.window):
+                if event.window.event==SDL_WINDOWEVENT_RESIZED:
+                    self.onResize(event.window.data1, event.window.data2)
+            #w=ctypes.c_int()
+            #h=ctypes.c_int()
+            ##SDL_GetWindowSize(window, w, h);
+            #isplay_w=ctypes.c_int()
+            #display_h=ctypes.c_int()
+            #SDL_GL_GetDrawableSize(window, display_w, display_h);
+
+        self.bind.process_event(event)
+
     def onUpdate(self, d):
         if not self.is_initialized:
             print(glGetString(GL_VERSION))
@@ -70,7 +105,6 @@ class Controller:
 
         #logger.debug('onUpdate: delta %d ms', d)
         self.bind.new_frame(d * 0.001, self.width, self.height)
-        imgui.Text("Hello, world!");
 
     def draw(self):
         if not self.is_initialized:
@@ -93,7 +127,8 @@ class Controller:
 
 import swig_imgui as imgui
 class ImGuiBind:
-    def __init__(self):
+    def __init__(self, window):
+        self.window=window
         self.font_texture=None
         self.shader_handle=None
         self.vs_handle=None
@@ -101,8 +136,60 @@ class ImGuiBind:
         self.vbo_handle=None
         self.elements_handle=None
         self.vao_handle=None
+        self.g_MousePressed=[False, False, False]
         io=imgui.GetIO()
+        io.SetKeyMap(imgui.ImGuiKey_Tab, SDLK_TAB); # Keyboard mapping. ImGui will use those indices to peek into the io.KeyDown[] array.
+        io.SetKeyMap(imgui.ImGuiKey_LeftArrow, SDL_SCANCODE_LEFT);
+        io.SetKeyMap(imgui.ImGuiKey_RightArrow, SDL_SCANCODE_RIGHT);
+        io.SetKeyMap(imgui.ImGuiKey_UpArrow, SDL_SCANCODE_UP);
+        io.SetKeyMap(imgui.ImGuiKey_DownArrow, SDL_SCANCODE_DOWN);
+        io.SetKeyMap(imgui.ImGuiKey_PageUp, SDL_SCANCODE_PAGEUP);
+        io.SetKeyMap(imgui.ImGuiKey_PageDown, SDL_SCANCODE_PAGEDOWN);
+        io.SetKeyMap(imgui.ImGuiKey_Home, SDL_SCANCODE_HOME);
+        io.SetKeyMap(imgui.ImGuiKey_End, SDL_SCANCODE_END);
+        io.SetKeyMap(imgui.ImGuiKey_Delete, SDLK_DELETE);
+        io.SetKeyMap(imgui.ImGuiKey_Backspace, SDLK_BACKSPACE);
+        io.SetKeyMap(imgui.ImGuiKey_Enter, SDLK_RETURN);
+        io.SetKeyMap(imgui.ImGuiKey_Escape, SDLK_ESCAPE);
+        io.SetKeyMap(imgui.ImGuiKey_A, SDLK_a);
+        io.SetKeyMap(imgui.ImGuiKey_C, SDLK_c);
+        io.SetKeyMap(imgui.ImGuiKey_V, SDLK_v);
+        io.SetKeyMap(imgui.ImGuiKey_X, SDLK_x);
+        io.SetKeyMap(imgui.ImGuiKey_Y, SDLK_y);
+        io.SetKeyMap(imgui.ImGuiKey_Z, SDLK_z);
+
         io.SetRenderDrawListsFn(self.render_draw_lists)
+
+        self.f=imgui.new_floatp()
+        imgui.floatp_assign(self.f, 0)
+
+    def process_event(self, event):
+        io = imgui.GetIO();
+        if event.type==SDL_MOUSEWHEEL:
+            if (event.wheel.y > 0):
+                self.g_MouseWheel = 1;
+            if (event.wheel.y < 0):
+                self.g_MouseWheel = -1;
+            return True;
+
+        elif event.type==SDL_MOUSEBUTTONDOWN:
+            if (event.button.button == SDL_BUTTON_LEFT): self.g_MousePressed[0] = True;
+            if (event.button.button == SDL_BUTTON_RIGHT): self.g_MousePressed[1] = True;
+            if (event.button.button == SDL_BUTTON_MIDDLE): self.g_MousePressed[2] = True;
+            return True;
+
+        elif event.type==SDL_TEXTINPUT:
+            io.AddInputCharactersUTF8(event.text.text);
+            return True;
+
+        elif event.type==SDL_KEYDOWN or event.type==SDL_KEYUP:
+            key = event.key.keysym.sym & ~SDLK_SCANCODE_MASK;
+            io.KeysDown[key] = (event.type == SDL_KEYDOWN);
+            io.KeyShift = ((SDL_GetModState() & KMOD_SHIFT) != 0);
+            io.KeyCtrl = ((SDL_GetModState() & KMOD_CTRL) != 0);
+            io.KeyAlt = ((SDL_GetModState() & KMOD_ALT) != 0);
+            io.KeySuper = ((SDL_GetModState() & KMOD_GUI) != 0);
+            return True;
 
     def new_frame(self, delta, w, h):
         if not self.font_texture:
@@ -120,20 +207,65 @@ class ImGuiBind:
                 traceback.print_exc()
 
         io=imgui.GetIO()
-
-        size=imgui.ImVec2(w, h)
-        #print(size)
-        io.DisplaySize=size
+        io.DisplaySize=imgui.ImVec2(w, h)
         io.DisplayFramebufferScale = imgui.ImVec2(1, 1)
         io.DeltaTime = delta
 
-        #io.MousePos
-        #io.MouseDown
-        #io.MouseWheel
+        # Setup inputs
+        # (we already got mouse wheel, keyboard keys & characters from SDL_PollEvent())
+        mx=ctypes.c_int()
+        my=ctypes.c_int()
+        mouseMask = SDL_GetMouseState(mx, my);
+        if (SDL_GetWindowFlags(self.window) & SDL_WINDOW_MOUSE_FOCUS)!=0:
+            io.MousePos = imgui.ImVec2(mx.value, my.value); #  // Mouse position, in pixels (set to -1,-1 if no mouse / on another screen, etc.)
+        else:
+            io.MousePos = imgui.ImVec2(-1, -1);
+
+        io.SetMouseDown(0, self.g_MousePressed[0]!=0 or (mouseMask & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0); # If a mouse press event came, always pass it as "mouse held this frame", so we don't miss click-release events that are shorter than 1 frame.
+        io.SetMouseDown(1, self.g_MousePressed[1]!=0 or (mouseMask & SDL_BUTTON(SDL_BUTTON_RIGHT)) != 0);
+        io.SetMouseDown(2, self.g_MousePressed[2]!=0 or (mouseMask & SDL_BUTTON(SDL_BUTTON_MIDDLE)) != 0);
+        self.g_MousePressed[0] = self.g_MousePressed[1] = self.g_MousePressed[2] = False;
+
+        #io.MouseWheel = g_MouseWheel;
+        #g_MouseWheel = 0.0f;
+
+        # Hide OS mouse cursor if ImGui is drawing it
+        SDL_ShowCursor(0 if io.MouseDrawCursor else 1);
 
         imgui.NewFrame()
 
-        return delta
+        # 1. Show a simple window
+        # Tip: if we don't call ImGui::Begin()/ImGui::End() the widgets appears in a window automatically called "Debug"
+        imgui.Text("Hello, world!");
+        imgui.SliderFloat("float", self.f, 0.0, 1.0);
+
+        '''
+        imgui.ColorEdit3("clear color", self.clear_color);
+        if (imgui.Button("Test Window")):
+            self.show_test_window ^= 1;
+        if (imgui.Button("Another Window")):
+            self.show_another_window ^= 1;
+        imgui.Text("Application average %.3f ms/frame (%.1f FPS)"
+                , 1000.0 / imgui.GetIO().Framerate, imgui.GetIO().Framerate);
+        '''
+
+        '''
+        // 2. Show another simple window, this time using an explicit Begin/End pair
+        if (show_another_window)
+        {
+            imgui.SetNextWindowSize(ImVec2(200,100), ImGuiSetCond_FirstUseEver);
+            imgui.Begin("Another Window", &show_another_window);
+            imgui.Text("Hello");
+            imgui.End();
+        }
+
+        // 3. Show the ImGui test window. Most of the sample code is in imgui.ShowTestWindow()
+        if (show_test_window)
+        {
+            imgui.SetNextWindowPos(ImVec2(650, 20), ImGuiSetCond_FirstUseEver);
+            imgui.ShowTestWindow(&show_test_window);
+        }
+        '''
 
     def create_device_objects(self):
         io=imgui.GetIO()
@@ -296,10 +428,13 @@ void main()
                     pcmd.UserCallback(cmd_list, pcmd);
                 else:
                     glBindTexture(GL_TEXTURE_2D, pcmd.TextureId);
-                    #glScissor((int)pcmd->ClipRect.x, (int)(fb_height - pcmd->ClipRect.w), (int)(pcmd->ClipRect.z - pcmd->ClipRect.x), (int)(pcmd->ClipRect.w - pcmd->ClipRect.y));
+                    glScissor(int(pcmd.ClipRect.x), 
+                              int(fb_height - pcmd.ClipRect.w), 
+                              int(pcmd.ClipRect.z - pcmd.ClipRect.x), 
+                              int(pcmd.ClipRect.w - pcmd.ClipRect.y));
                     glDrawElements(GL_TRIANGLES, pcmd.ElemCount, GL_UNSIGNED_SHORT, ctypes.c_void_p(idx_buffer_offset));
 
-                idx_buffer_offset += pcmd.ElemCount;
+                idx_buffer_offset += pcmd.ElemCount * 2;
 
         # Restore modified GL state
         glUseProgram(last_program);
@@ -332,7 +467,7 @@ void main()
 if not 'PYSDL2_DLL_PATH' in os.environ:
     os.environ['PYSDL2_DLL_PATH']=os.environ['VCPKG_DIR'] + '/installed/x64-windows/bin'
 from sdl2 import *
-def loop(width, height, title=b'title'):
+def loop(width, height, title=b'swig_imgui on pysdl2'):
 
     if SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER)!=0:
         raise Exception('fail to SDL_Init')
@@ -352,7 +487,7 @@ def loop(width, height, title=b'title'):
             , SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE)
     context=SDL_GL_CreateContext(window)
 
-    controller=Controller()
+    controller=Controller(window)
     controller.onResize(width, height)
 
     lastTime=SDL_GetTicks()
@@ -364,39 +499,13 @@ def loop(width, height, title=b'title'):
             elif event.type == SDL_KEYDOWN:
                 if event.key.keysym.sym==113: # q
                     return
-                controller.onKeyDown(event.key.keysym.sym)
-            elif event.type == SDL_MOUSEBUTTONDOWN:
-                if event.button.button==SDL_BUTTON_LEFT:
-                    controller.onLeftDown(event.button.x, event.button.y)
-                elif event.button.button==SDL_BUTTON_MIDDLE:
-                    controller.onMiddleDown(event.button.x, event.button.y)
-                elif event.button.button==SDL_BUTTON_RIGHT:
-                    controller.onRightDown(event.button.x, event.button.y)
-            elif event.type == SDL_MOUSEBUTTONUP:
-                if event.button.button==SDL_BUTTON_LEFT:
-                    controller.onLeftUp(event.button.x, event.button.y)
-                elif event.button.button==SDL_BUTTON_MIDDLE:
-                    controller.onMiddleUp(event.button.x, event.button.y)
-                elif event.button.button==SDL_BUTTON_RIGHT:
-                    controller.onRightUp(event.button.x, event.button.y)
-            elif event.type == SDL_MOUSEMOTION:
-                controller.onMotion(event.motion.x, event.motion.y)
-            elif event.type == SDL_MOUSEWHEEL:
-                controller.onWheel(-event.wheel.y)
+
+            controller.process_event(event)
 
         time=SDL_GetTicks()
         d=time-lastTime
         lastTime=time
         if d>0:
-
-            w=ctypes.c_int()
-            h=ctypes.c_int()
-            SDL_GetWindowSize(window, w, h);
-            display_w=ctypes.c_int()
-            display_h=ctypes.c_int()
-            SDL_GL_GetDrawableSize(window, display_w, display_h);
-            #print(w, h, display_w, display_h)
-
             controller.onUpdate(d)
             controller.draw()
             SDL_GL_SwapWindow(window)

@@ -3,6 +3,8 @@
 %module swig_imgui
 %include "typemaps.i"
 %include "std_vector.i"
+%include "cpointer.i"
+%pointer_functions(float, floatp);
 
 %begin %{
 #ifdef _MSC_VER
@@ -74,6 +76,7 @@ static void PythonRenderDrawListsFn(ImDrawData* data)
 
 //IMGUI_API void GetTexDataAsRGBA32(unsigned char** out_pixels, int* out_width, int* out_height, int* out_bytes_per_pixel = NULL);  // 4 bytes-per-pixel
 %apply int *OUTPUT { int *out_width, int *out_height };
+//%apply float *INOUT { float *v };
 
 /* Parse the header file to generate wrappers */
 %include "imgui/imgui.h"
@@ -113,6 +116,16 @@ byterange GetTexDataAsRGBA32(int* out_width, int* out_height)
     void SetTexID(int id)
     {
         ImGui::GetIO().Fonts->TexID=(void*)id;
+    }
+
+    void SetKeyMap(int k, int v)
+    {
+        ImGui::GetIO().KeyMap[k]=v;
+    }
+
+    void SetMouseDown(int k, int v)
+    {
+        ImGui::GetIO().MouseDown[k]=v;
     }
 }
 
