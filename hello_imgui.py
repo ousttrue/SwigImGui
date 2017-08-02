@@ -54,7 +54,8 @@ class Controller:
         logger.debug('onRightUp: %d, %d', x, y)
 
     def onMotion(self, x, y):
-        logger.debug('onMotion: %d, %d', x, y)
+        #logger.debug('onMotion: %d, %d', x, y)
+        pass
 
     def onWheel(self, d):
         logger.debug('onWheel: %d', d)
@@ -68,7 +69,7 @@ class Controller:
             self.is_initialized=True
 
         #logger.debug('onUpdate: delta %d ms', d)
-        self.bind.new_frame(d, self.width, self.height)
+        self.bind.new_frame(d * 0.001, self.width, self.height)
         imgui.Text("Hello, world!");
 
     def draw(self):
@@ -79,11 +80,12 @@ class Controller:
         glClearColor(0.0, 0.0, 1.0, 0.0)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-        glBegin(GL_TRIANGLES)
-        glVertex(-1.0,-1.0)
-        glVertex( 1.0,-1.0)
-        glVertex( 0.0, 1.0)
-        glEnd()
+        # GL1.0
+        #glBegin(GL_TRIANGLES)
+        #glVertex(-1.0,-1.0)
+        #glVertex( 1.0,-1.0)
+        #glVertex( 0.0, 1.0)
+        #glEnd()
 
         imgui.Render()
 
@@ -106,6 +108,13 @@ class ImGuiBind:
         if not self.font_texture:
             try:
                 self.create_device_objects()
+            except GLError as ex:
+                print(ex)
+                if ex.description:
+                    print(type(ex.description))
+                    print(ex.description.decode('cp932'))
+                import traceback
+                traceback.print_exc()
             except:
                 import traceback
                 traceback.print_exc()
@@ -207,11 +216,12 @@ void main()
 
         # Upload texture to graphics system
         last_texture=glGetIntegerv(GL_TEXTURE_BINDING_2D);
-        self.font_texture=glGenTextures(1);
+        self.font_texture=glGenTextures(1); # numpy.uint32 to int
         glBindTexture(GL_TEXTURE_2D, self.font_texture);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height
+                , 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 
         # Store our identifier
         io.SetTexID(self.font_texture)
@@ -319,17 +329,29 @@ void main()
         glViewport(last_viewport[0], last_viewport[1], last_viewport[2], last_viewport[3]);
         glScissor(last_scissor_box[0], last_scissor_box[1], last_scissor_box[2], last_scissor_box[3]);
 
-
+if not 'PYSDL2_DLL_PATH' in os.environ:
+    os.environ['PYSDL2_DLL_PATH']=os.environ['VCPKG_DIR'] + '/installed/x64-windows/bin'
 from sdl2 import *
 def loop(width, height, title=b'title'):
 
-    SDL_Init(SDL_INIT_VIDEO)
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1)
+    if SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER)!=0:
+        raise Exception('fail to SDL_Init')
+
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+    #current=SDL_GetCurrentDisplayMode(0)
+    #print(current)
     window = SDL_CreateWindow(title
             , SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED
             , width, height
-            , SDL_WINDOW_OPENGL)
-    SDL_GL_CreateContext(window)
+            , SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE)
+    context=SDL_GL_CreateContext(window)
+
     controller=Controller()
     controller.onResize(width, height)
 
@@ -340,6 +362,8 @@ def loop(width, height, title=b'title'):
             if event.type == SDL_QUIT:
                 return
             elif event.type == SDL_KEYDOWN:
+                if event.key.keysym.sym==113: # q
+                    return
                 controller.onKeyDown(event.key.keysym.sym)
             elif event.type == SDL_MOUSEBUTTONDOWN:
                 if event.button.button==SDL_BUTTON_LEFT:
@@ -364,10 +388,33 @@ def loop(width, height, title=b'title'):
         d=time-lastTime
         lastTime=time
         if d>0:
+
+            w=ctypes.c_int()
+            h=ctypes.c_int()
+            SDL_GetWindowSize(window, w, h);
+            display_w=ctypes.c_int()
+            display_h=ctypes.c_int()
+            SDL_GL_GetDrawableSize(window, display_w, display_h);
+            #print(w, h, display_w, display_h)
+
             controller.onUpdate(d)
             controller.draw()
             SDL_GL_SwapWindow(window)
 
+    SDL_GL_DeleteConext(context)
+
+
 if __name__=="__main__":
 
-    loop(640, 480)
+    try:
+        loop(640, 480)
+    except GLError as ex:
+        print(ex)
+        if ex.description:
+            print(ex.description.decode('cp932'))
+        import traceback
+        traceback.print_exc()
+    except:
+        import traceback
+        traceback.print_exc()
+

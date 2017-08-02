@@ -95,7 +95,7 @@ byterange GetTexDataAsRGBA32(int* out_width, int* out_height)
     //std::vector<unsigned char> data(p, p+size);
     //ImGui::MemFree(p);
     //return data;
-    return byterange((const char *)p, *out_width * *out_height);
+    return byterange((const char *)p, *out_width * *out_height * 4);
 }
 
 %}
