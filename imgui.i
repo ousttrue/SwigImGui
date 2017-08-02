@@ -85,7 +85,7 @@ static void PythonRenderDrawListsFn(ImDrawData* data)
 
 %inline %{
 
-unsigned long long GetTexDataAsRGBA32(int* out_width, int* out_height) 
+byterange GetTexDataAsRGBA32(int* out_width, int* out_height) 
 { 
     auto &io=ImGui::GetIO();
 
@@ -95,7 +95,7 @@ unsigned long long GetTexDataAsRGBA32(int* out_width, int* out_height)
     //std::vector<unsigned char> data(p, p+size);
     //ImGui::MemFree(p);
     //return data;
-    return (unsigned long long)p;
+    return byterange((const char *)p, *out_width * *out_height);
 }
 
 %}
