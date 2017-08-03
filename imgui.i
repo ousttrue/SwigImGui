@@ -73,16 +73,15 @@ static void PythonRenderDrawListsFn(ImDrawData* data)
 }
 
 %typemap(in) float col[3] (float temp[3]) {
-  int i;
   if (!PySequence_Check($input)) {
     PyErr_SetString(PyExc_ValueError,"Expected a sequence");
     return NULL;
   }
-  if (PySequence_Length($input) != 3) {
-    PyErr_SetString(PyExc_ValueError,"Size mismatch. Expected more than 3 elements");
+  if (PySequence_Length($input) != $1_dim0) {
+    PyErr_SetString(PyExc_ValueError,"Size mismatch. Expected more than $1_dim0 elements");
     return NULL;
   }
-  for (i = 0; i < 3; i++) {
+  for (int i = 0; i < $1_dim0; i++) {
     PyObject *o = PySequence_GetItem($input,i);
     if (PyNumber_Check(o)) {
       temp[i] = (float) PyFloat_AsDouble(o);
@@ -94,12 +93,10 @@ static void PythonRenderDrawListsFn(ImDrawData* data)
   $1 = temp;
 }
 
-%typemap(out) float col[ANY] {
-    int i;
-    $result = PyList_New($1_dim0);
-    for (i = 0; i < $1_dim0; i++) {
+%typemap(argout) float col[3] {
+    for (int i = 0; i < $1_dim0; i++) {
         PyObject *o = PyFloat_FromDouble((double) $1[i]);
-        PyList_SetItem($result,i,o);
+        PyList_SetItem($input,i,o);
     }
 }
 
@@ -146,7 +143,7 @@ byterange GetTexDataAsRGBA32(int* out_width, int* out_height)
 
     void SetTexID(int id)
     {
-        ImGui::GetIO().Fonts->TexID=(void*)id;
+        ImGui::GetIO().Fonts->TexID=reinterpret_cast<void*>(id);
     }
 
     void SetKeyMap(int k, int v)
