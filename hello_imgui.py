@@ -111,7 +111,7 @@ class Controller:
             print(glGetString(GL_VERSION))
             self.is_initialized=True
 
-        glClearColor(0.0, 0.0, 1.0, 0.0)
+        glClearColor(*self.bind.clear_color, 0)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
         # GL1.0
@@ -137,6 +137,7 @@ class ImGuiBind:
         self.elements_handle=None
         self.vao_handle=None
         self.g_MousePressed=[False, False, False]
+        self.g_MouseWheel=0
         io=imgui.GetIO()
         io.SetKeyMap(imgui.ImGuiKey_Tab, SDLK_TAB); # Keyboard mapping. ImGui will use those indices to peek into the io.KeyDown[] array.
         io.SetKeyMap(imgui.ImGuiKey_LeftArrow, SDL_SCANCODE_LEFT);
@@ -162,6 +163,7 @@ class ImGuiBind:
 
         self.f=imgui.new_floatp()
         imgui.floatp_assign(self.f, 0)
+        self.clear_color=[114/255.0, 144/255.0, 154/255.0]
 
     def process_event(self, event):
         io = imgui.GetIO();
@@ -184,7 +186,7 @@ class ImGuiBind:
 
         elif event.type==SDL_KEYDOWN or event.type==SDL_KEYUP:
             key = event.key.keysym.sym & ~SDLK_SCANCODE_MASK;
-            io.KeysDown[key] = (event.type == SDL_KEYDOWN);
+            io.SetKeysDown(key, event.type == SDL_KEYDOWN);
             io.KeyShift = ((SDL_GetModState() & KMOD_SHIFT) != 0);
             io.KeyCtrl = ((SDL_GetModState() & KMOD_CTRL) != 0);
             io.KeyAlt = ((SDL_GetModState() & KMOD_ALT) != 0);
@@ -226,8 +228,8 @@ class ImGuiBind:
         io.SetMouseDown(2, self.g_MousePressed[2]!=0 or (mouseMask & SDL_BUTTON(SDL_BUTTON_MIDDLE)) != 0);
         self.g_MousePressed[0] = self.g_MousePressed[1] = self.g_MousePressed[2] = False;
 
-        #io.MouseWheel = g_MouseWheel;
-        #g_MouseWheel = 0.0f;
+        io.MouseWheel = self.g_MouseWheel;
+        self.g_MouseWheel = 0.0;
 
         # Hide OS mouse cursor if ImGui is drawing it
         SDL_ShowCursor(0 if io.MouseDrawCursor else 1);
@@ -238,9 +240,8 @@ class ImGuiBind:
         # Tip: if we don't call ImGui::Begin()/ImGui::End() the widgets appears in a window automatically called "Debug"
         imgui.Text("Hello, world!");
         imgui.SliderFloat("float", self.f, 0.0, 1.0);
-
-        '''
         imgui.ColorEdit3("clear color", self.clear_color);
+        '''
         if (imgui.Button("Test Window")):
             self.show_test_window ^= 1;
         if (imgui.Button("Another Window")):

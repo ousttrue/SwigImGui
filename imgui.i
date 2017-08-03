@@ -72,6 +72,37 @@ static void PythonRenderDrawListsFn(ImDrawData* data)
   $result = PyBytes_FromStringAndSize($1.begin, $1.size);
 }
 
+%typemap(in) float col[3] (float temp[3]) {
+  int i;
+  if (!PySequence_Check($input)) {
+    PyErr_SetString(PyExc_ValueError,"Expected a sequence");
+    return NULL;
+  }
+  if (PySequence_Length($input) != 3) {
+    PyErr_SetString(PyExc_ValueError,"Size mismatch. Expected more than 3 elements");
+    return NULL;
+  }
+  for (i = 0; i < 3; i++) {
+    PyObject *o = PySequence_GetItem($input,i);
+    if (PyNumber_Check(o)) {
+      temp[i] = (float) PyFloat_AsDouble(o);
+    } else {
+      PyErr_SetString(PyExc_ValueError,"Sequence elements must be numbers");      
+      return NULL;
+    }
+  }
+  $1 = temp;
+}
+
+%typemap(out) float col[ANY] {
+    int i;
+    $result = PyList_New($1_dim0);
+    for (i = 0; i < $1_dim0; i++) {
+        PyObject *o = PyFloat_FromDouble((double) $1[i]);
+        PyList_SetItem($result,i,o);
+    }
+}
+
 %ignore ImGui::TreePush();
 
 //IMGUI_API void GetTexDataAsRGBA32(unsigned char** out_pixels, int* out_width, int* out_height, int* out_bytes_per_pixel = NULL);  // 4 bytes-per-pixel
@@ -126,6 +157,11 @@ byterange GetTexDataAsRGBA32(int* out_width, int* out_height)
     void SetMouseDown(int k, int v)
     {
         ImGui::GetIO().MouseDown[k]=v;
+    }
+
+    void SetKeysDown(int k, int v)
+    {
+        ImGui::GetIO().KeysDown[k]=v;
     }
 }
 
