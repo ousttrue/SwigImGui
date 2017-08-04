@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{b054d5a3-a1e3-425d-9936-6c184c3e07c9}</ProjectGuid>
     <ProjectHome />
-    <StartupFile>hello_imgui.py</StartupFile>
+    <StartupFile>main.py</StartupFile>
     <SearchPath />
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -24,7 +24,6 @@
   <ItemGroup>
     <Content Include="build_vs2017\CMakeCache.txt" />
     <Content Include="build_vs2017\CMakeFiles\TargetDirectories.txt" />
-    <Content Include="CMakeLists.txt" />
     <Content Include="imgui\examples\apple_example\imguiex-ios\Images.xcassets\AppIcon.appiconset\icon_imgui_60%402x~iphone.png" />
     <Content Include="imgui\examples\apple_example\imguiex-ios\Images.xcassets\AppIcon.appiconset\icon_imgui_60%403x~iphone.png" />
     <Content Include="imgui\examples\apple_example\imguiex-ios\Images.xcassets\AppIcon.appiconset\icon_imgui_76%402x~ipad.png" />
@@ -65,6 +64,12 @@
     <Compile Include="glglue\tutorial\03_use_glglue.py" />
     <Compile Include="glglue\tutorial\simple_renderer.py" />
     <Compile Include="hello_imgui.py" />
+    <Compile Include="ImplSdlGL3.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="main.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="setup.py" />
     <Compile Include="swig_imgui.py" />
   </ItemGroup>

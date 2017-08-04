@@ -1,11 +1,5 @@
 /* vim: set ft=c */
-
 %module swig_imgui
-%include "typemaps.i"
-%include "std_vector.i"
-%include "cpointer.i"
-%pointer_functions(float, floatp);
-
 %begin %{
 #ifdef _MSC_VER
 #define SWIG_PYTHON_INTERPRETER_NO_DEBUG
@@ -15,47 +9,25 @@
 %{
 /* Includes the header in the wrapper code */
 #include "imgui/imgui.h"
-//#include <vector>
-#include <algorithm>
+%}
 
-struct byterange
-{
-    const char *begin;
-    size_t size;
+%ignore ImGui::TreePush();
 
-    byterange()
-        : begin(nullptr)
-        , size(0)
-    {}
+%constant int SIZEOF_ImDrawVert = sizeof(ImDrawVert);
+%constant int SIZEOF_ImDrawIdx = sizeof(ImDrawIdx);
 
-    byterange(const char *b, size_t s)
-        : begin(b)
-        , size(s)
-    {}
+%{
+#define OFFSETOF(TYPE, ELEMENT) ((size_t)&(((TYPE *)0)->ELEMENT))
+const int OFFSETOF_ImDrawVert_pos = OFFSETOF(ImDrawVert, pos);
+const int OFFSETOF_ImDrawVert_uv = OFFSETOF(ImDrawVert, uv);
+const int OFFSETOF_ImDrawVert_col = OFFSETOF(ImDrawVert, col);
+#undef OFFSETOF
+%}
+const int OFFSETOF_ImDrawVert_pos = OFFSETOF_ImDrawVert_pos;
+const int OFFSETOF_ImDrawVert_uv = OFFSETOF_ImDrawVert_uv;
+const int OFFSETOF_ImDrawVert_col = OFFSETOF_ImDrawVert_col;
 
-    template<typename T>
-        byterange(const T &range)
-        : begin((const char *)range.begin())
-        , size(std::distance((const char *)range.begin(), (const char *)range.end()))
-    {}
-
-    byterange(const byterange &rhs)
-    {
-        *this=rhs;
-    }
-
-    byterange& operator=(const byterange &rhs)
-    {
-        begin=rhs.begin;
-        size=rhs.size;
-        return *this;
-    }
-};
-
-/* This function matches the prototype of the normal C callback
-   function for our widget. However, we use the clientdata pointer
-   for holding a reference to a Python callable object. */
-
+%{
 static void PythonRenderDrawListsFn(ImDrawData* data)
 {
     auto func=(PyObject*)ImGui::GetIO().UserData; // Get Python function
@@ -68,87 +40,121 @@ static void PythonRenderDrawListsFn(ImDrawData* data)
 }
 %}
 
-%typemap(out) byterange {
-  $result = PyBytes_FromStringAndSize($1.begin, $1.size);
+//%include "typemaps.i"
+%typemap(in, numinputs=0) (unsigned char** out_pixels, int* out_width, int* out_height, int* out_bytes_per_pixel) (unsigned char *tempP, int tempW, int tempH, int tempB) {
+    $1 = &tempP;
+    $2 = &tempW;
+    $3 = &tempH;
+    $4 = &tempB;
 }
+%typemap(argout)(unsigned char** out_pixels, int* out_width, int* out_height, int* out_bytes_per_pixel){
+    auto b = PyBytes_FromStringAndSize((const char *)*$1, (*$2) * (*$3) * (*$4));
+    auto w = PyLong_FromLong(*$2);
+    auto h = PyLong_FromLong(*$3);
+
+    if ((!$result) || ($result == Py_None)) {
+        // new tuple3
+        $result = PyTuple_New(3);
+        PyTuple_SetItem($result, 0, b);
+        PyTuple_SetItem($result, 1, w);
+        PyTuple_SetItem($result, 2, h);
+    }
+    else{
+        if (!PyTuple_Check($result)) {
+            // new tuple4
+            auto t= PyTuple_New(4);
+            PyTuple_SetItem(t, 0, $result);
+            PyTuple_SetItem(t, 1, b);
+            PyTuple_SetItem(t, 2, w);
+            PyTuple_SetItem(t, 3, h);
+            $result=t;
+        }
+        else {
+            // concat
+            auto head = $result;
+            auto tail = PyTuple_New(3);
+            PyTuple_SetItem($result, 0, b);
+            PyTuple_SetItem($result, 1, w);
+            PyTuple_SetItem($result, 2, h);
+            $result = PySequence_Concat(head, tail);
+            Py_DECREF(head);
+            Py_DECREF(tail);
+        }
+    }
+}
+
 
 %typemap(in) float col[3] (float temp[3]) {
-  if (!PySequence_Check($input)) {
-    PyErr_SetString(PyExc_ValueError,"Expected a sequence");
-    return NULL;
-  }
-  if (PySequence_Length($input) != $1_dim0) {
-    PyErr_SetString(PyExc_ValueError,"Size mismatch. Expected more than $1_dim0 elements");
-    return NULL;
-  }
-  for (int i = 0; i < $1_dim0; i++) {
-    PyObject *o = PySequence_GetItem($input,i);
-    if (PyNumber_Check(o)) {
-      temp[i] = (float) PyFloat_AsDouble(o);
-    } else {
-      PyErr_SetString(PyExc_ValueError,"Sequence elements must be numbers");      
-      return NULL;
+    if (!PySequence_Check($input)) {
+        PyErr_SetString(PyExc_ValueError,"Expected a sequence");
+        return NULL;
     }
-  }
-  $1 = temp;
+    if (PySequence_Length($input) < $1_dim0) {
+        PyErr_SetString(PyExc_ValueError,"Size mismatch. Expected more than $1_dim0 elements");
+        return NULL;
+    }
+    for (int i = 0; i < $1_dim0; i++) {
+        PyObject *o = PySequence_GetItem($input,i);
+        if (PyNumber_Check(o)) {
+            temp[i] = (float) PyFloat_AsDouble(o);
+        }
+        else {
+            PyErr_SetString(PyExc_ValueError,"Sequence elements must be numbers");
+            return NULL;
+        }
+    }
+    $1 = temp;
 }
-
 %typemap(argout) float col[3] {
     for (int i = 0; i < $1_dim0; i++) {
         PyObject *o = PyFloat_FromDouble((double) $1[i]);
-        PyList_SetItem($input,i,o);
+        PyList_SetItem($input, i, o);
     }
 }
 
-%ignore ImGui::TreePush();
+%typemap(in, numinputs=0) (unsigned char** out_bytes, int* out_size) (unsigned char *tempP, int tempSize) {
+    $1 = &tempP;
+    $2 = &tempSize;
+}
+%typemap(argout)(unsigned char** out_bytes, int* out_size){
+    auto b = PyBytes_FromStringAndSize((const char *)*$1, *$2);
 
-//IMGUI_API void GetTexDataAsRGBA32(unsigned char** out_pixels, int* out_width, int* out_height, int* out_bytes_per_pixel = NULL);  // 4 bytes-per-pixel
-%apply int *OUTPUT { int *out_width, int *out_height };
-//%apply float *INOUT { float *v };
+    if ((!$result) || ($result == Py_None)) {
+        $result = b;
+    }
+    else{
+        if (!PyTuple_Check($result)) {
+            // new tuple4
+            auto t= PyTuple_New(2);
+            PyTuple_SetItem(t, 0, $result);
+            PyTuple_SetItem(t, 1, b);
+            $result=t;
+        }
+        else {
+            // concat
+            auto head = $result;
+            auto tail = PyTuple_New(1);
+            PyTuple_SetItem($result, 0, b);
+            $result = PySequence_Concat(head, tail);
+            Py_DECREF(head);
+            Py_DECREF(tail);
+        }
+    }
+}
 
-/* Parse the header file to generate wrappers */
+//////////////////////////////////////////////////////////////////////////////
 %include "imgui/imgui.h"
+//////////////////////////////////////////////////////////////////////////////
 
-//%template(UCharVector) std::vector<unsigned char>;
-%template(ImVectorDrawVert) ImVector<ImDrawVert>;
-%template(ImVectorDrawIdx) ImVector<ImDrawIdx>;
-%template(ImVectorDrawCmd) ImVector<ImDrawCmd>;
-
-%inline %{
-
-byterange GetTexDataAsRGBA32(int* out_width, int* out_height) 
-{ 
-    auto &io=ImGui::GetIO();
-
-    unsigned char *p;
-    io.Fonts->GetTexDataAsRGBA32(&p, out_width, out_height);
-    auto size=(*out_width) * (*out_height);
-    //std::vector<unsigned char> data(p, p+size);
-    //ImGui::MemFree(p);
-    //return data;
-    return byterange((const char *)p, *out_width * *out_height * 4);
-}
-
-%}
-
-// Attach a new method to our plot widget for adding Python functions
 %extend ImGuiIO {
-    // Set a Python function object as a callback function
-    // Note : PyObject *pyfunc is remapped with a typempap
-    void SetRenderDrawListsFn(PyObject *pyfunc) {
-        ImGui::GetIO().UserData=pyfunc;
-        self->RenderDrawListsFn=PythonRenderDrawListsFn;
-        Py_INCREF(pyfunc);
-    }
-
-    void SetTexID(int id)
-    {
-        ImGui::GetIO().Fonts->TexID=reinterpret_cast<void*>(id);
-    }
-
     void SetKeyMap(int k, int v)
     {
         ImGui::GetIO().KeyMap[k]=v;
+    }
+
+    void SetImeWindowHandle(long long v)
+    {
+        ImGui::GetIO().ImeWindowHandle = (void*)v;
     }
 
     void SetMouseDown(int k, int v)
@@ -162,22 +168,48 @@ byterange GetTexDataAsRGBA32(int* out_width, int* out_height)
     }
 }
 
+%extend ImGuiIO {
+    void SetRenderDrawListsFn(PyObject *pyfunc) {
+        ImGui::GetIO().UserData=pyfunc;
+        self->RenderDrawListsFn=PythonRenderDrawListsFn;
+        Py_INCREF(pyfunc);
+    }
+}
+
+%extend ImFontAtlas {
+    void SetTexID(long long id) {
+        self->TexID=reinterpret_cast<void*>(id);
+    }
+}
+
 %extend ImDrawData {
     ImDrawList* GetCmdList(int n){
         return self->CmdLists[n];
     }
 }
 
-%extend ImDrawList {
-    byterange GetVtxBufferData(){
-        return byterange(self->VtxBuffer);
-    }
-    byterange GetIdxBufferData(){
-        return byterange(self->IdxBuffer);
-    }
+%template(ImVectorDrawVert) ImVector<ImDrawVert>;
+%template(ImVectorDrawIdx) ImVector<ImDrawIdx>;
+%template(ImVectorDrawCmd) ImVector<ImDrawCmd>;
 
+%extend ImDrawList {
+    void GetVtxBufferData(unsigned char **out_bytes, int *out_size){
+        *out_bytes=(unsigned char *)self->VtxBuffer.Data;
+        *out_size=self->VtxBuffer.Size * sizeof(self->VtxBuffer.Data[0]);
+    }
+    void GetIdxBufferData(unsigned char **out_bytes, int *out_size){
+        *out_bytes=(unsigned char *)self->IdxBuffer.Data;
+        *out_size=self->IdxBuffer.Size * sizeof(self->IdxBuffer.Data[0]);
+    }
+}
+
+%extend ImDrawList {
     ImDrawCmd* GetCmdBuffer(int n){
         return &self->CmdBuffer[n];
     }
 }
+
+%include "cpointer.i"
+%pointer_functions(float, floatp);
+%pointer_functions(bool, boolp);
 
